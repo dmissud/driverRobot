@@ -2,7 +2,6 @@ package org.dbs.robot.driverrobot.arduino.config;
 
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 
 /**
  * Configuration properties for Arduino controller.
@@ -20,7 +19,7 @@ public class ArduinoConfig {
      * The name of the serial port to connect to.
      * Default is /dev/ttyUSB0 on Linux or COM1 on Windows.
      */
-    private String port = "/dev/ttyUSB0";
+    private String port = "ttyACM0";
 
     /**
      * The baud rate for the serial connection.
