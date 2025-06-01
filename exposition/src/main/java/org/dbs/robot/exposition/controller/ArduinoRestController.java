@@ -9,6 +9,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.dbs.robot.driver.arduino.ArduinoController;
+import org.dbs.robot.exposition.model.LedResponse;
+import org.dbs.robot.exposition.model.ServoMovementResponse;
+import org.dbs.robot.exposition.model.ServoResponse;
+import org.dbs.robot.exposition.model.StatusResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,20 +42,25 @@ public class ArduinoRestController {
         @ApiResponse(
             responseCode = "200", 
             description = "Arduino is ready",
-            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string"))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = StatusResponse.class))
         ),
         @ApiResponse(
             responseCode = "503", 
             description = "Arduino is not ready",
-            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string"))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = StatusResponse.class))
         )
     })
     @GetMapping("/status")
-    public ResponseEntity<String> getStatus() {
-        if (arduinoController.isReady()) {
-            return ResponseEntity.ok("Arduino is ready");
+    public ResponseEntity<StatusResponse> getStatus() {
+        boolean isReady = arduinoController.isReady();
+        StatusResponse response;
+
+        if (isReady) {
+            response = new StatusResponse(true, "Arduino is ready", true);
+            return ResponseEntity.ok(response);
         } else {
-            return ResponseEntity.status(503).body("Arduino is not ready");
+            response = new StatusResponse(false, "Arduino is not ready", false);
+            return ResponseEntity.status(503).body(response);
         }
     }
 
@@ -70,22 +79,24 @@ public class ArduinoRestController {
         @ApiResponse(
             responseCode = "200", 
             description = "LED state changed successfully",
-            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string"))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = LedResponse.class))
         ),
         @ApiResponse(
             responseCode = "500", 
             description = "Failed to control LED",
-            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string"))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = LedResponse.class))
         )
     })
     @PostMapping("/led/{name}")
-    public ResponseEntity<String> controlLed(
+    public ResponseEntity<LedResponse> controlLed(
             @Parameter(description = "LED name identifier", required = true) @PathVariable String name,
             @Parameter(description = "LED state (true for on, false for off)", required = true) @RequestParam boolean state) {
         if (arduinoController.controlLed(name, state)) {
-            return ResponseEntity.ok("LED " + name + " " + (state ? "turned on" : "turned off"));
+            LedResponse response = new LedResponse(true, "LED " + name + " " + (state ? "turned on" : "turned off"), name, state);
+            return ResponseEntity.ok(response);
         } else {
-            return ResponseEntity.status(500).body("Failed to control LED " + name);
+            LedResponse response = new LedResponse(false, "Failed to control LED " + name, name, state);
+            return ResponseEntity.status(500).body(response);
         }
     }
 
@@ -104,22 +115,24 @@ public class ArduinoRestController {
         @ApiResponse(
             responseCode = "200", 
             description = "Servo positioned successfully",
-            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string"))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServoResponse.class))
         ),
         @ApiResponse(
             responseCode = "500", 
             description = "Failed to position servo",
-            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string"))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServoResponse.class))
         )
     })
     @PostMapping("/servo/{name}/position")
-    public ResponseEntity<String> positionServo(
+    public ResponseEntity<ServoResponse> positionServo(
             @Parameter(description = "Servo name identifier", required = true) @PathVariable String name,
             @Parameter(description = "Angle in degrees (typically 0-180)", required = true) @RequestParam int angle) {
         if (arduinoController.positionServo(name, angle)) {
-            return ResponseEntity.ok(SERVO + name + " positioned at " + angle + " degrees");
+            ServoResponse response = new ServoResponse(true, SERVO + name + " positioned at " + angle + " degrees", name, angle);
+            return ResponseEntity.ok(response);
         } else {
-            return ResponseEntity.status(500).body("Failed to position servo " + name);
+            ServoResponse response = new ServoResponse(false, "Failed to position servo " + name, name, angle);
+            return ResponseEntity.status(500).body(response);
         }
     }
 
@@ -140,24 +153,42 @@ public class ArduinoRestController {
         @ApiResponse(
             responseCode = "200", 
             description = "Servo sweep initiated successfully",
-            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string"))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServoMovementResponse.class))
         ),
         @ApiResponse(
             responseCode = "500", 
             description = "Failed to sweep servo",
-            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string"))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServoMovementResponse.class))
         )
     })
     @PostMapping("/servo/{name}/sweep")
-    public ResponseEntity<String> sweepServo(
+    public ResponseEntity<ServoMovementResponse> sweepServo(
             @Parameter(description = "Servo name identifier", required = true) @PathVariable String name,
             @Parameter(description = "Starting angle in degrees", required = true) @RequestParam int startAngle,
             @Parameter(description = "Ending angle in degrees", required = true) @RequestParam int endAngle,
             @Parameter(description = "Speed of movement (higher values mean faster movement)", required = true) @RequestParam int speed) {
         if (arduinoController.sweep(name, startAngle, endAngle, speed)) {
-            return ResponseEntity.ok(SERVO + name + " sweeping from " + startAngle + " to " + endAngle);
+            ServoMovementResponse response = new ServoMovementResponse(
+                true, 
+                SERVO + name + " sweeping from " + startAngle + " to " + endAngle,
+                name,
+                "sweep",
+                startAngle,
+                endAngle,
+                speed
+            );
+            return ResponseEntity.ok(response);
         } else {
-            return ResponseEntity.status(500).body("Failed to sweep servo " + name);
+            ServoMovementResponse response = new ServoMovementResponse(
+                false, 
+                "Failed to sweep servo " + name,
+                name,
+                "sweep",
+                startAngle,
+                endAngle,
+                speed
+            );
+            return ResponseEntity.status(500).body(response);
         }
     }
 
@@ -178,24 +209,42 @@ public class ArduinoRestController {
         @ApiResponse(
             responseCode = "200", 
             description = "Servo half-sweep initiated successfully",
-            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string"))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServoMovementResponse.class))
         ),
         @ApiResponse(
             responseCode = "500", 
             description = "Failed to half-sweep servo",
-            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string"))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServoMovementResponse.class))
         )
     })
     @PostMapping("/servo/{name}/half-sweep")
-    public ResponseEntity<String> halfSweepServo(
+    public ResponseEntity<ServoMovementResponse> halfSweepServo(
             @Parameter(description = "Servo name identifier", required = true) @PathVariable String name,
             @Parameter(description = "Starting angle in degrees", required = true) @RequestParam int startAngle,
             @Parameter(description = "Ending angle in degrees", required = true) @RequestParam int endAngle,
             @Parameter(description = "Speed of movement (higher values mean faster movement)", required = true) @RequestParam int speed) {
         if (arduinoController.halfSweep(name, startAngle, endAngle, speed)) {
-            return ResponseEntity.ok(SERVO + name + " half-sweeping from " + startAngle + " to " + endAngle);
+            ServoMovementResponse response = new ServoMovementResponse(
+                true, 
+                SERVO + name + " half-sweeping from " + startAngle + " to " + endAngle,
+                name,
+                "half-sweep",
+                startAngle,
+                endAngle,
+                speed
+            );
+            return ResponseEntity.ok(response);
         } else {
-            return ResponseEntity.status(500).body("Failed to half-sweep servo " + name);
+            ServoMovementResponse response = new ServoMovementResponse(
+                false, 
+                "Failed to half-sweep servo " + name,
+                name,
+                "half-sweep",
+                startAngle,
+                endAngle,
+                speed
+            );
+            return ResponseEntity.status(500).body(response);
         }
     }
 
@@ -216,24 +265,42 @@ public class ArduinoRestController {
         @ApiResponse(
             responseCode = "200", 
             description = "Servo reverse-half-sweep initiated successfully",
-            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string"))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServoMovementResponse.class))
         ),
         @ApiResponse(
             responseCode = "500", 
             description = "Failed to reverse-half-sweep servo",
-            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string"))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServoMovementResponse.class))
         )
     })
     @PostMapping("/servo/{name}/reverse-half-sweep")
-    public ResponseEntity<String> reverseHalfSweepServo(
+    public ResponseEntity<ServoMovementResponse> reverseHalfSweepServo(
             @Parameter(description = "Servo name identifier", required = true) @PathVariable String name,
             @Parameter(description = "Starting angle in degrees", required = true) @RequestParam int startAngle,
             @Parameter(description = "Ending angle in degrees", required = true) @RequestParam int endAngle,
             @Parameter(description = "Speed of movement (higher values mean faster movement)", required = true) @RequestParam int speed) {
         if (arduinoController.reverseHalfSweep(name, startAngle, endAngle, speed)) {
-            return ResponseEntity.ok(SERVO + name + " reverse-half-sweeping from " + startAngle + " to " + endAngle);
+            ServoMovementResponse response = new ServoMovementResponse(
+                true, 
+                SERVO + name + " reverse-half-sweeping from " + startAngle + " to " + endAngle,
+                name,
+                "reverse-half-sweep",
+                startAngle,
+                endAngle,
+                speed
+            );
+            return ResponseEntity.ok(response);
         } else {
-            return ResponseEntity.status(500).body("Failed to reverse-half-sweep servo " + name);
+            ServoMovementResponse response = new ServoMovementResponse(
+                false, 
+                "Failed to reverse-half-sweep servo " + name,
+                name,
+                "reverse-half-sweep",
+                startAngle,
+                endAngle,
+                speed
+            );
+            return ResponseEntity.status(500).body(response);
         }
     }
 
@@ -254,24 +321,42 @@ public class ArduinoRestController {
         @ApiResponse(
             responseCode = "200", 
             description = "Servo reverse-sweep initiated successfully",
-            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string"))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServoMovementResponse.class))
         ),
         @ApiResponse(
             responseCode = "500", 
             description = "Failed to reverse-sweep servo",
-            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string"))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServoMovementResponse.class))
         )
     })
     @PostMapping("/servo/{name}/reverse-sweep")
-    public ResponseEntity<String> reverseSweepServo(
+    public ResponseEntity<ServoMovementResponse> reverseSweepServo(
             @Parameter(description = "Servo name identifier", required = true) @PathVariable String name,
             @Parameter(description = "Starting angle in degrees", required = true) @RequestParam int startAngle,
             @Parameter(description = "Ending angle in degrees", required = true) @RequestParam int endAngle,
             @Parameter(description = "Speed of movement (higher values mean faster movement)", required = true) @RequestParam int speed) {
         if (arduinoController.reverseSweep(name, startAngle, endAngle, speed)) {
-            return ResponseEntity.ok(SERVO + name + " reverse-sweeping from " + startAngle + " to " + endAngle);
+            ServoMovementResponse response = new ServoMovementResponse(
+                true, 
+                SERVO + name + " reverse-sweeping from " + startAngle + " to " + endAngle,
+                name,
+                "reverse-sweep",
+                startAngle,
+                endAngle,
+                speed
+            );
+            return ResponseEntity.ok(response);
         } else {
-            return ResponseEntity.status(500).body("Failed to reverse-sweep servo " + name);
+            ServoMovementResponse response = new ServoMovementResponse(
+                false, 
+                "Failed to reverse-sweep servo " + name,
+                name,
+                "reverse-sweep",
+                startAngle,
+                endAngle,
+                speed
+            );
+            return ResponseEntity.status(500).body(response);
         }
     }
 
@@ -288,12 +373,13 @@ public class ArduinoRestController {
         @ApiResponse(
             responseCode = "200", 
             description = "Arduino controller shut down successfully",
-            content = @Content(mediaType = "text/plain", schema = @Schema(type = "string"))
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = org.dbs.robot.exposition.model.ApiResponse.class))
         )
     })
     @PostMapping("/shutdown")
-    public ResponseEntity<String> shutdown() {
+    public ResponseEntity<org.dbs.robot.exposition.model.ApiResponse> shutdown() {
         arduinoController.shutdown();
-        return ResponseEntity.ok("Arduino controller shut down");
+        org.dbs.robot.exposition.model.ApiResponse response = new org.dbs.robot.exposition.model.ApiResponse(true, "Arduino controller shut down");
+        return ResponseEntity.ok(response);
     }
 }

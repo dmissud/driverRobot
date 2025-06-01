@@ -1,6 +1,11 @@
 package org.dbs.robot.exposition.controller;
 
 import org.dbs.robot.driver.arduino.ArduinoController;
+import org.dbs.robot.exposition.model.ApiResponse;
+import org.dbs.robot.exposition.model.LedResponse;
+import org.dbs.robot.exposition.model.ServoMovementResponse;
+import org.dbs.robot.exposition.model.ServoResponse;
+import org.dbs.robot.exposition.model.StatusResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,11 +39,13 @@ class ArduinoRestControllerTest {
         when(arduinoController.isReady()).thenReturn(true);
 
         // Act
-        ResponseEntity<String> response = arduinoRestController.getStatus();
+        ResponseEntity<StatusResponse> response = arduinoRestController.getStatus();
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Arduino is ready", response.getBody());
+        assertTrue(response.getBody().isSuccess());
+        assertTrue(response.getBody().isReady());
+        assertEquals("Arduino is ready", response.getBody().getMessage());
         verify(arduinoController).isReady();
     }
 
@@ -46,11 +55,13 @@ class ArduinoRestControllerTest {
         when(arduinoController.isReady()).thenReturn(false);
 
         // Act
-        ResponseEntity<String> response = arduinoRestController.getStatus();
+        ResponseEntity<StatusResponse> response = arduinoRestController.getStatus();
 
         // Assert
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
-        assertEquals("Arduino is not ready", response.getBody());
+        assertFalse(response.getBody().isSuccess());
+        assertFalse(response.getBody().isReady());
+        assertEquals("Arduino is not ready", response.getBody().getMessage());
         verify(arduinoController).isReady();
     }
 
@@ -62,11 +73,14 @@ class ArduinoRestControllerTest {
         when(arduinoController.controlLed(ledName, state)).thenReturn(true);
 
         // Act
-        ResponseEntity<String> response = arduinoRestController.controlLed(ledName, state);
+        ResponseEntity<LedResponse> response = arduinoRestController.controlLed(ledName, state);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("LED red turned on", response.getBody());
+        assertTrue(response.getBody().isSuccess());
+        assertEquals(ledName, response.getBody().getName());
+        assertEquals(state, response.getBody().isState());
+        assertEquals("LED red turned on", response.getBody().getMessage());
         verify(arduinoController).controlLed(ledName, state);
     }
 
@@ -78,11 +92,14 @@ class ArduinoRestControllerTest {
         when(arduinoController.controlLed(ledName, state)).thenReturn(false);
 
         // Act
-        ResponseEntity<String> response = arduinoRestController.controlLed(ledName, state);
+        ResponseEntity<LedResponse> response = arduinoRestController.controlLed(ledName, state);
 
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals("Failed to control LED red", response.getBody());
+        assertFalse(response.getBody().isSuccess());
+        assertEquals(ledName, response.getBody().getName());
+        assertEquals(state, response.getBody().isState());
+        assertEquals("Failed to control LED red", response.getBody().getMessage());
         verify(arduinoController).controlLed(ledName, state);
     }
 
@@ -94,11 +111,14 @@ class ArduinoRestControllerTest {
         when(arduinoController.positionServo(servoName, angle)).thenReturn(true);
 
         // Act
-        ResponseEntity<String> response = arduinoRestController.positionServo(servoName, angle);
+        ResponseEntity<ServoResponse> response = arduinoRestController.positionServo(servoName, angle);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Servo arm positioned at 90 degrees", response.getBody());
+        assertTrue(response.getBody().isSuccess());
+        assertEquals(servoName, response.getBody().getName());
+        assertEquals(angle, response.getBody().getAngle());
+        assertEquals("Servo arm positioned at 90 degrees", response.getBody().getMessage());
         verify(arduinoController).positionServo(servoName, angle);
     }
 
@@ -110,11 +130,14 @@ class ArduinoRestControllerTest {
         when(arduinoController.positionServo(servoName, angle)).thenReturn(false);
 
         // Act
-        ResponseEntity<String> response = arduinoRestController.positionServo(servoName, angle);
+        ResponseEntity<ServoResponse> response = arduinoRestController.positionServo(servoName, angle);
 
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals("Failed to position servo arm", response.getBody());
+        assertFalse(response.getBody().isSuccess());
+        assertEquals(servoName, response.getBody().getName());
+        assertEquals(angle, response.getBody().getAngle());
+        assertEquals("Failed to position servo arm", response.getBody().getMessage());
         verify(arduinoController).positionServo(servoName, angle);
     }
 
@@ -128,11 +151,17 @@ class ArduinoRestControllerTest {
         when(arduinoController.sweep(servoName, startAngle, endAngle, speed)).thenReturn(true);
 
         // Act
-        ResponseEntity<String> response = arduinoRestController.sweepServo(servoName, startAngle, endAngle, speed);
+        ResponseEntity<ServoMovementResponse> response = arduinoRestController.sweepServo(servoName, startAngle, endAngle, speed);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Servo arm sweeping from 0 to 180", response.getBody());
+        assertTrue(response.getBody().isSuccess());
+        assertEquals(servoName, response.getBody().getName());
+        assertEquals("sweep", response.getBody().getMovementType());
+        assertEquals(startAngle, response.getBody().getStartAngle());
+        assertEquals(endAngle, response.getBody().getEndAngle());
+        assertEquals(speed, response.getBody().getSpeed());
+        assertEquals("Servo arm sweeping from 0 to 180", response.getBody().getMessage());
         verify(arduinoController).sweep(servoName, startAngle, endAngle, speed);
     }
 
@@ -146,11 +175,17 @@ class ArduinoRestControllerTest {
         when(arduinoController.sweep(servoName, startAngle, endAngle, speed)).thenReturn(false);
 
         // Act
-        ResponseEntity<String> response = arduinoRestController.sweepServo(servoName, startAngle, endAngle, speed);
+        ResponseEntity<ServoMovementResponse> response = arduinoRestController.sweepServo(servoName, startAngle, endAngle, speed);
 
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals("Failed to sweep servo arm", response.getBody());
+        assertFalse(response.getBody().isSuccess());
+        assertEquals(servoName, response.getBody().getName());
+        assertEquals("sweep", response.getBody().getMovementType());
+        assertEquals(startAngle, response.getBody().getStartAngle());
+        assertEquals(endAngle, response.getBody().getEndAngle());
+        assertEquals(speed, response.getBody().getSpeed());
+        assertEquals("Failed to sweep servo arm", response.getBody().getMessage());
         verify(arduinoController).sweep(servoName, startAngle, endAngle, speed);
     }
 
@@ -164,11 +199,17 @@ class ArduinoRestControllerTest {
         when(arduinoController.halfSweep(servoName, startAngle, endAngle, speed)).thenReturn(true);
 
         // Act
-        ResponseEntity<String> response = arduinoRestController.halfSweepServo(servoName, startAngle, endAngle, speed);
+        ResponseEntity<ServoMovementResponse> response = arduinoRestController.halfSweepServo(servoName, startAngle, endAngle, speed);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Servo arm half-sweeping from 0 to 90", response.getBody());
+        assertTrue(response.getBody().isSuccess());
+        assertEquals(servoName, response.getBody().getName());
+        assertEquals("half-sweep", response.getBody().getMovementType());
+        assertEquals(startAngle, response.getBody().getStartAngle());
+        assertEquals(endAngle, response.getBody().getEndAngle());
+        assertEquals(speed, response.getBody().getSpeed());
+        assertEquals("Servo arm half-sweeping from 0 to 90", response.getBody().getMessage());
         verify(arduinoController).halfSweep(servoName, startAngle, endAngle, speed);
     }
 
@@ -182,11 +223,17 @@ class ArduinoRestControllerTest {
         when(arduinoController.halfSweep(servoName, startAngle, endAngle, speed)).thenReturn(false);
 
         // Act
-        ResponseEntity<String> response = arduinoRestController.halfSweepServo(servoName, startAngle, endAngle, speed);
+        ResponseEntity<ServoMovementResponse> response = arduinoRestController.halfSweepServo(servoName, startAngle, endAngle, speed);
 
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals("Failed to half-sweep servo arm", response.getBody());
+        assertFalse(response.getBody().isSuccess());
+        assertEquals(servoName, response.getBody().getName());
+        assertEquals("half-sweep", response.getBody().getMovementType());
+        assertEquals(startAngle, response.getBody().getStartAngle());
+        assertEquals(endAngle, response.getBody().getEndAngle());
+        assertEquals(speed, response.getBody().getSpeed());
+        assertEquals("Failed to half-sweep servo arm", response.getBody().getMessage());
         verify(arduinoController).halfSweep(servoName, startAngle, endAngle, speed);
     }
 
@@ -200,11 +247,17 @@ class ArduinoRestControllerTest {
         when(arduinoController.reverseHalfSweep(servoName, startAngle, endAngle, speed)).thenReturn(true);
 
         // Act
-        ResponseEntity<String> response = arduinoRestController.reverseHalfSweepServo(servoName, startAngle, endAngle, speed);
+        ResponseEntity<ServoMovementResponse> response = arduinoRestController.reverseHalfSweepServo(servoName, startAngle, endAngle, speed);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Servo arm reverse-half-sweeping from 90 to 0", response.getBody());
+        assertTrue(response.getBody().isSuccess());
+        assertEquals(servoName, response.getBody().getName());
+        assertEquals("reverse-half-sweep", response.getBody().getMovementType());
+        assertEquals(startAngle, response.getBody().getStartAngle());
+        assertEquals(endAngle, response.getBody().getEndAngle());
+        assertEquals(speed, response.getBody().getSpeed());
+        assertEquals("Servo arm reverse-half-sweeping from 90 to 0", response.getBody().getMessage());
         verify(arduinoController).reverseHalfSweep(servoName, startAngle, endAngle, speed);
     }
 
@@ -218,11 +271,17 @@ class ArduinoRestControllerTest {
         when(arduinoController.reverseHalfSweep(servoName, startAngle, endAngle, speed)).thenReturn(false);
 
         // Act
-        ResponseEntity<String> response = arduinoRestController.reverseHalfSweepServo(servoName, startAngle, endAngle, speed);
+        ResponseEntity<ServoMovementResponse> response = arduinoRestController.reverseHalfSweepServo(servoName, startAngle, endAngle, speed);
 
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals("Failed to reverse-half-sweep servo arm", response.getBody());
+        assertFalse(response.getBody().isSuccess());
+        assertEquals(servoName, response.getBody().getName());
+        assertEquals("reverse-half-sweep", response.getBody().getMovementType());
+        assertEquals(startAngle, response.getBody().getStartAngle());
+        assertEquals(endAngle, response.getBody().getEndAngle());
+        assertEquals(speed, response.getBody().getSpeed());
+        assertEquals("Failed to reverse-half-sweep servo arm", response.getBody().getMessage());
         verify(arduinoController).reverseHalfSweep(servoName, startAngle, endAngle, speed);
     }
 
@@ -236,11 +295,17 @@ class ArduinoRestControllerTest {
         when(arduinoController.reverseSweep(servoName, startAngle, endAngle, speed)).thenReturn(true);
 
         // Act
-        ResponseEntity<String> response = arduinoRestController.reverseSweepServo(servoName, startAngle, endAngle, speed);
+        ResponseEntity<ServoMovementResponse> response = arduinoRestController.reverseSweepServo(servoName, startAngle, endAngle, speed);
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Servo arm reverse-sweeping from 180 to 0", response.getBody());
+        assertTrue(response.getBody().isSuccess());
+        assertEquals(servoName, response.getBody().getName());
+        assertEquals("reverse-sweep", response.getBody().getMovementType());
+        assertEquals(startAngle, response.getBody().getStartAngle());
+        assertEquals(endAngle, response.getBody().getEndAngle());
+        assertEquals(speed, response.getBody().getSpeed());
+        assertEquals("Servo arm reverse-sweeping from 180 to 0", response.getBody().getMessage());
         verify(arduinoController).reverseSweep(servoName, startAngle, endAngle, speed);
     }
 
@@ -254,22 +319,29 @@ class ArduinoRestControllerTest {
         when(arduinoController.reverseSweep(servoName, startAngle, endAngle, speed)).thenReturn(false);
 
         // Act
-        ResponseEntity<String> response = arduinoRestController.reverseSweepServo(servoName, startAngle, endAngle, speed);
+        ResponseEntity<ServoMovementResponse> response = arduinoRestController.reverseSweepServo(servoName, startAngle, endAngle, speed);
 
         // Assert
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals("Failed to reverse-sweep servo arm", response.getBody());
+        assertFalse(response.getBody().isSuccess());
+        assertEquals(servoName, response.getBody().getName());
+        assertEquals("reverse-sweep", response.getBody().getMovementType());
+        assertEquals(startAngle, response.getBody().getStartAngle());
+        assertEquals(endAngle, response.getBody().getEndAngle());
+        assertEquals(speed, response.getBody().getSpeed());
+        assertEquals("Failed to reverse-sweep servo arm", response.getBody().getMessage());
         verify(arduinoController).reverseSweep(servoName, startAngle, endAngle, speed);
     }
 
     @Test
     void shutdown_shouldCallControllerShutdownAndReturnOkWithSuccessMessage() {
         // Act
-        ResponseEntity<String> response = arduinoRestController.shutdown();
+        ResponseEntity<ApiResponse> response = arduinoRestController.shutdown();
 
         // Assert
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Arduino controller shut down", response.getBody());
+        assertTrue(response.getBody().isSuccess());
+        assertEquals("Arduino controller shut down", response.getBody().getMessage());
         verify(arduinoController).shutdown();
     }
 }
