@@ -208,7 +208,8 @@ public class SerialCommunicator {
      * @return true if the response matches the expected response, false otherwise
      */
     private boolean validateResponse(String response, String expectedResponse) {
-        return expectedResponse.equalsIgnoreCase(response);
+        log.debug("Validating response: {} against expected response: {}", response, expectedResponse);
+        return response.toLowerCase().startsWith(expectedResponse.toLowerCase());
     }
 
     /**
