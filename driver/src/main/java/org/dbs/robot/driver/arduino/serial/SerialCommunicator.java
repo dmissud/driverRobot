@@ -72,17 +72,33 @@ public class SerialCommunicator {
      */
     private void findSerialPort() {
         SerialPortWrapper[] ports = serialPortFactory.getCommPorts();
+
+        log.info("Searching for port: {}", portName);
+        log.info("Available serial ports:");
+
         for (SerialPortWrapper port : ports) {
-            log.debug("Found serial port: {}", port.getSystemPortName());
-            log.debug("Found serial port: {}", port.getDescriptivePortName());
-            if (port.getSystemPortName().equals(portName) || port.getDescriptivePortName().contains(portName)) {
+            log.info("  - System name: {}, Descriptive name: {}",
+                    port.getSystemPortName(),
+                    port.getDescriptivePortName());
+
+            // Recherche plus flexible : correspondance exacte ou contenue dans le nom
+            String systemName = port.getSystemPortName();
+            String descriptiveName = port.getDescriptivePortName();
+
+            if (systemName.equals(portName) ||
+                    systemName.endsWith(portName) ||
+                    descriptiveName.contains(portName)) {
                 serialPort = port;
+                log.info("Matched port: {} ({})", systemName, descriptiveName);
                 break;
             }
         }
 
         if (serialPort == null) {
-            log.error("Serial port {} not found", portName);
+            log.error("Serial port {} not found. Please check:", portName);
+            log.error("  1. Is the Arduino connected?");
+            log.error("  2. Does the user have permission to access the port? (Try: sudo usermod -a -G dialout $USER)");
+            log.error("  3. Is the port name correct? Available ports are listed above.");
             throw new IllegalStateException("Serial port not found: " + portName);
         }
     }

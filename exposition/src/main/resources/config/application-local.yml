@@ -8,3 +8,7 @@ logging:
     org:
       dbs:
         robot: DEBUG
+
+arduino:
+  port: ttyACM1
+  baudRate: 9600
