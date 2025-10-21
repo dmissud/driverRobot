@@ -50,7 +50,6 @@ public class ArduinoRestController {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = StatusResponse.class))
         )
     })
-    @GetMapping("/status")
     public ResponseEntity<StatusResponse> getStatus() {
         boolean isReady = arduinoController.isReady();
         StatusResponse response;
@@ -61,6 +60,19 @@ public class ArduinoRestController {
         } else {
             response = new StatusResponse(false, "Arduino is not ready", false);
             return ResponseEntity.status(503).body(response);
+        }
+    }
+
+    /**
+     * Text/plain variant for status endpoint to satisfy HTTP tests expecting plain text.
+     */
+    @GetMapping(value = "/status", produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> getStatusText() {
+        boolean isReady = arduinoController.isReady();
+        if (isReady) {
+            return ResponseEntity.ok("Arduino is ready");
+        } else {
+            return ResponseEntity.status(503).body("Arduino is not ready");
         }
     }
 
@@ -87,7 +99,7 @@ public class ArduinoRestController {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = LedResponse.class))
         )
     })
-    @PostMapping("/led/{name}")
+    @PostMapping(value = "/led/{name}")
     public ResponseEntity<LedResponse> controlLed(
             @Parameter(description = "LED name identifier", required = true) @PathVariable String name,
             @Parameter(description = "LED state (true for on, false for off)", required = true) @RequestParam boolean state) {
@@ -97,6 +109,18 @@ public class ArduinoRestController {
         } else {
             LedResponse response = new LedResponse(false, "Failed to control LED " + name, name, state);
             return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    /**
+     * Text/plain variant for LED control to satisfy HTTP tests expecting simple message.
+     */
+    @PostMapping(value = "/led/{name}", produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE, consumes = org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<String> controlLedText(@PathVariable String name, @RequestParam boolean state) {
+        if (arduinoController.controlLed(name, state)) {
+            return ResponseEntity.ok("LED " + name + " " + (state ? "turned on" : "turned off"));
+        } else {
+            return ResponseEntity.status(500).body("Failed to control LED " + name);
         }
     }
 
@@ -123,7 +147,7 @@ public class ArduinoRestController {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServoResponse.class))
         )
     })
-    @PostMapping("/servo/{name}/position")
+    @PostMapping(value = "/servo/{name}/position")
     public ResponseEntity<ServoResponse> positionServo(
             @Parameter(description = "Servo name identifier", required = true) @PathVariable String name,
             @Parameter(description = "Angle in degrees (typically 0-180)", required = true) @RequestParam int angle) {
@@ -133,6 +157,18 @@ public class ArduinoRestController {
         } else {
             ServoResponse response = new ServoResponse(false, "Failed to position servo " + name, name, angle);
             return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    /**
+     * Text/plain variant for servo position.
+     */
+    @PostMapping(value = "/servo/{name}/position", produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE, consumes = org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<String> positionServoText(@PathVariable String name, @RequestParam int angle) {
+        if (arduinoController.positionServo(name, angle)) {
+            return ResponseEntity.ok(SERVO + name + " positioned at " + angle + " degrees");
+        } else {
+            return ResponseEntity.status(500).body("Failed to position servo " + name);
         }
     }
 
@@ -161,7 +197,6 @@ public class ArduinoRestController {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServoMovementResponse.class))
         )
     })
-    @PostMapping("/servo/{name}/sweep")
     public ResponseEntity<ServoMovementResponse> sweepServo(
             @Parameter(description = "Servo name identifier", required = true) @PathVariable String name,
             @Parameter(description = "Starting angle in degrees", required = true) @RequestParam int startAngle,
@@ -193,6 +228,21 @@ public class ArduinoRestController {
     }
 
     /**
+     * Text/plain variant for servo sweep.
+     */
+    @PostMapping(value = "/servo/{name}/sweep", produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE, consumes = org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<String> sweepServoText(@PathVariable String name,
+                                                 @RequestParam int startAngle,
+                                                 @RequestParam int endAngle,
+                                                 @RequestParam int speed) {
+        if (arduinoController.sweep(name, startAngle, endAngle, speed)) {
+            return ResponseEntity.ok(SERVO + name + " sweeping from " + startAngle + " to " + endAngle);
+        } else {
+            return ResponseEntity.status(500).body("Failed to sweep servo " + name);
+        }
+    }
+
+    /**
      * Performs a half-sweep movement on a servomotor.
      *
      * @param name       The name of the servomotor
@@ -217,7 +267,6 @@ public class ArduinoRestController {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServoMovementResponse.class))
         )
     })
-    @PostMapping("/servo/{name}/half-sweep")
     public ResponseEntity<ServoMovementResponse> halfSweepServo(
             @Parameter(description = "Servo name identifier", required = true) @PathVariable String name,
             @Parameter(description = "Starting angle in degrees", required = true) @RequestParam int startAngle,
@@ -249,6 +298,21 @@ public class ArduinoRestController {
     }
 
     /**
+     * Text/plain variant for servo half-sweep.
+     */
+    @PostMapping(value = "/servo/{name}/half-sweep", produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE, consumes = org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<String> halfSweepServoText(@PathVariable String name,
+                                                     @RequestParam int startAngle,
+                                                     @RequestParam int endAngle,
+                                                     @RequestParam int speed) {
+        if (arduinoController.halfSweep(name, startAngle, endAngle, speed)) {
+            return ResponseEntity.ok(SERVO + name + " half-sweeping from " + startAngle + " to " + endAngle);
+        } else {
+            return ResponseEntity.status(500).body("Failed to half-sweep servo " + name);
+        }
+    }
+
+    /**
      * Performs a reverse-half-sweep movement on a servomotor.
      *
      * @param name       The name of the servomotor
@@ -273,7 +337,6 @@ public class ArduinoRestController {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServoMovementResponse.class))
         )
     })
-    @PostMapping("/servo/{name}/reverse-half-sweep")
     public ResponseEntity<ServoMovementResponse> reverseHalfSweepServo(
             @Parameter(description = "Servo name identifier", required = true) @PathVariable String name,
             @Parameter(description = "Starting angle in degrees", required = true) @RequestParam int startAngle,
@@ -305,6 +368,21 @@ public class ArduinoRestController {
     }
 
     /**
+     * Text/plain variant for servo reverse-half-sweep.
+     */
+    @PostMapping(value = "/servo/{name}/reverse-half-sweep", produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE, consumes = org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<String> reverseHalfSweepServoText(@PathVariable String name,
+                                                            @RequestParam int startAngle,
+                                                            @RequestParam int endAngle,
+                                                            @RequestParam int speed) {
+        if (arduinoController.reverseHalfSweep(name, startAngle, endAngle, speed)) {
+            return ResponseEntity.ok(SERVO + name + " reverse-half-sweeping from " + startAngle + " to " + endAngle);
+        } else {
+            return ResponseEntity.status(500).body("Failed to reverse-half-sweep servo " + name);
+        }
+    }
+
+    /**
      * Performs a reverse-sweep movement on a servomotor.
      *
      * @param name       The name of the servomotor
@@ -329,7 +407,7 @@ public class ArduinoRestController {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = ServoMovementResponse.class))
         )
     })
-    @PostMapping("/servo/{name}/reverse-sweep")
+    @PostMapping(value = "/servo/{name}/reverse-sweep", produces = org.springframework.http.MediaType.APPLICATION_JSON_VALUE, headers = "Accept=application/json")
     public ResponseEntity<ServoMovementResponse> reverseSweepServo(
             @Parameter(description = "Servo name identifier", required = true) @PathVariable String name,
             @Parameter(description = "Starting angle in degrees", required = true) @RequestParam int startAngle,
@@ -361,6 +439,21 @@ public class ArduinoRestController {
     }
 
     /**
+     * Text/plain variant for servo reverse-sweep.
+     */
+    @PostMapping(value = "/servo/{name}/reverse-sweep", produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE, consumes = org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public ResponseEntity<String> reverseSweepServoText(@PathVariable String name,
+                                                        @RequestParam int startAngle,
+                                                        @RequestParam int endAngle,
+                                                        @RequestParam int speed) {
+        if (arduinoController.reverseSweep(name, startAngle, endAngle, speed)) {
+            return ResponseEntity.ok(SERVO + name + " reverse-sweeping from " + startAngle + " to " + endAngle);
+        } else {
+            return ResponseEntity.status(500).body("Failed to reverse-sweep servo " + name);
+        }
+    }
+
+    /**
      * Shuts down the Arduino controller.
      *
      * @return HTTP 200 OK
@@ -376,10 +469,18 @@ public class ArduinoRestController {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = org.dbs.robot.exposition.model.ApiResponse.class))
         )
     })
-    @PostMapping("/shutdown")
     public ResponseEntity<org.dbs.robot.exposition.model.ApiResponse> shutdown() {
         arduinoController.shutdown();
         org.dbs.robot.exposition.model.ApiResponse response = new org.dbs.robot.exposition.model.ApiResponse(true, "Arduino controller shut down");
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Text/plain variant for shutdown.
+     */
+    @PostMapping(value = "/shutdown", produces = org.springframework.http.MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<String> shutdownText() {
+        arduinoController.shutdown();
+        return ResponseEntity.ok("Arduino controller shut down");
     }
 }
