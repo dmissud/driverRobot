@@ -40,6 +40,9 @@
         <jserialcomm.version>2.11.2</jserialcomm.version>
         <cucumber.version>7.30.0</cucumber.version>
         <junit-jupiter.version>6.0.0</junit-jupiter.version>
+        <jna.version>5.14.0</jna.version>
+
+        <argLine></argLine>
     </properties>
 
     <dependencyManagement>
@@ -72,6 +75,18 @@
                 <groupId>com.fazecast</groupId>
                 <artifactId>jSerialComm</artifactId>
                 <version>${jserialcomm.version}</version>
+            </dependency>
+
+            <!-- JNA - Required for native library access -->
+            <dependency>
+                <groupId>net.java.dev.jna</groupId>
+                <artifactId>jna</artifactId>
+                <version>${jna.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.java.dev.jna</groupId>
+                <artifactId>jna-platform</artifactId>
+                <version>${jna.version}</version>
             </dependency>
 
             <!-- Cucumber BOM -->
@@ -116,6 +131,26 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
+                </configuration>
+            </plugin>
+        </plugins>
     </build>
 
 </project>

@@ -10,5 +10,5 @@ logging:
         robot: DEBUG
 
 arduino:
-  port: ttyACM1
+  port: ttyACM0
   baudRate: 9600
