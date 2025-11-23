@@ -1,0 +1,14 @@
+spring:
+  shell:
+    interactive:
+      enabled: false
+
+logging:
+  level:
+    org:
+      dbs:
+        robot: DEBUG
+
+arduino:
+  port: ttyACM0
+  baudRate: 9600
